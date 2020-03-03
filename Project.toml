@@ -1,0 +1,13 @@
+name = "NetworkEpidemics"
+uuid = "19a28150-5d3d-11ea-0c68-3d7d6069d736"
+authors = ["cedric.simal@student.unamur.be"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
