@@ -16,7 +16,7 @@ _NI(m) = throw(NotImplementedError(m))
 """
     AbstractEpidemicModel
 
-An abstract type representing an epidemic model to be simulated with a Gillespie algorithm.
+An abstract type representing an epidemic model with support and dynamics.
 """
 abstract type AbstractEpidemicModel end
 
@@ -57,8 +57,8 @@ Update the `output` of the simulation.
 update_output!(output, state, em, n) = _NI("update_output!")
 
 """
-    stop(em, state)
+    default_stop(em, state)
 
-Specify an optional stopping criterion for the algorithm.
+Default stopping criterion for the algorithm.
 """
-stop(em::AbstractEpidemicModel, state) = false
+default_stop(em::AbstractEpidemicModel, state) = false
