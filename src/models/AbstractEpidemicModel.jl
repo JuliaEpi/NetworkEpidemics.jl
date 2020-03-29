@@ -40,7 +40,11 @@ init_rates(em::AbstractEpidemicModel, state) = _NI("init_rates")
 
 Initialize the output of the algorithm, allocating it and processing the initial `state`.
 """
-init_output(em::AbstractEpidemicModel, state, n::Integer) = _NI("init_output")
+function init_output(em::AbstractEpidemicModel, state, nmax::Integer)
+    output = Vector{typeof(state)}(undef, nmax)
+    output[1] = state
+    return output
+end
 
 """
     update_state!(em, state, n)
@@ -54,7 +58,18 @@ update_state!(state, a, em::AbstractEpidemicModel, k) = _NI("update_state!")
 
 Update the `output` of the simulation.
 """
-update_output!(output, state, em, n) = _NI("update_output!")
+function update_output!(output, state, mp::AbstractEpidemicModel, n)
+    output[n] = state
+end
+
+"""
+    finalize_output(em, output)
+
+Finalize the output.
+
+Overwrite this for example to massage your output for easier plotting.
+"""
+finalize_output(em::AbstractEpidemicModel, output) = output
 
 """
     default_stop(em, state)
