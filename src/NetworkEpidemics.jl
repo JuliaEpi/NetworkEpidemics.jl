@@ -11,6 +11,7 @@ include("utils\\rand.jl")
 include("utils\\categorical_tree.jl")
 
 include("models\\AbstractEpidemicModel.jl")
+
 export AbstractEpidemicModel
 
 include("models\\models\\metapopulation.jl")
