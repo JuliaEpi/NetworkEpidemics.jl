@@ -5,14 +5,20 @@ using LinearAlgebra
 using DifferentialEquations
 using LightGraphs
 using LightGraphs.SimpleGraphs
+using StatsBase
 
 
-include("utils\\rand.jl")
 include("utils\\categorical_tree.jl")
+include("utils\\rand.jl")
+include("utils\\unzip.jl")
 
 include("models\\AbstractEpidemicModel.jl")
 
 export AbstractEpidemicModel
+
+include("EpidemicEvent.jl")
+
+export EpidemicEvent
 
 include("models\\models\\metapopulation.jl")
 include("models\\models\\metaplex.jl")

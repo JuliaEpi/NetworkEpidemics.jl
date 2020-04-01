@@ -26,7 +26,9 @@ abstract type AbstractEpidemicModel end
 
 Setup the initial state for the Gillespie simulation.
 """
-init_state(em::AbstractEpidemicModel, state_0, t) = _NI("init_state")
+function init_state(em::AbstractEpidemicModel, state_0, t)
+    state = copy(state_0)
+end
 
 """
     init_rates(em, state)
@@ -40,9 +42,9 @@ init_rates(em::AbstractEpidemicModel, state) = _NI("init_rates")
 
 Initialize the output of the algorithm, allocating it and processing the initial `state`.
 """
-function init_output(em::AbstractEpidemicModel, state, nmax::Integer)
+function init_output(em::AbstractEpidemicModel, state, nmax)
     output = Vector{typeof(state)}(undef, nmax)
-    output[1] = state
+    output[1] = copy(state)
     return output
 end
 
@@ -51,15 +53,15 @@ end
 
 Update the `state` of the simulation and the rates vector `a` with reaction `k` from the rates vector.
 """
-update_state!(state, a, em::AbstractEpidemicModel, k) = _NI("update_state!")
+update_state!(state, a, k, em::AbstractEpidemicModel) = _NI("update_state!")
 
 """
     update_output(output, state, em, n)
 
 Update the `output` of the simulation.
 """
-function update_output!(output, state, mp::AbstractEpidemicModel, n)
-    output[n] = state
+function update_output!(output, state, n, k, em::AbstractEpidemicModel)
+    output[n] = copy(state) # DansGame
 end
 
 """
