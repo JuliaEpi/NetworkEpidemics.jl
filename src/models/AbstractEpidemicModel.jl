@@ -26,7 +26,7 @@ abstract type AbstractEpidemicModel end
 
 Setup the initial state for the Gillespie simulation.
 """
-function init_state(em::AbstractEpidemicModel, state_0, t)
+function init_state(em::AbstractEpidemicModel, state_0)
     state = copy(state_0)
 end
 

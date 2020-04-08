@@ -22,6 +22,7 @@ function init_rates(mp::Metapopulation, state)
     return a
 end
 
-#update_state!(state, a, mp::Metapopulation, k) = _NI("update_state!")
+output_type(::Metapopulation) = Int
+
 
 # Not part of the interface

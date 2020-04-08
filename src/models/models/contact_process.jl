@@ -1,4 +1,9 @@
 
+"""
+    ContactProcess{T} <: AbstractEpidemicModel
+
+A type representing a contact process on network `g` with arbitrary dynamics.
+"""
 struct ContactProcess{T} <: AbstractEpidemicModel where T
     g::AbstractSimpleGraph
     dynamics::T

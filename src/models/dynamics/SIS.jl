@@ -1,0 +1,211 @@
+
+"""
+    SIS
+
+A type representing a Susceptible-Infected-Susceptible model with infection rate `β` and recovery rate `γ`.
+"""
+struct SIS <: AbstractCompartimentalModel
+    β::Real
+    γ::Real
+end
+
+SI(sis::SIS) = SI(sis.β)
+
+num_states(::SIS) = 2
+
+# Metapopulation
+
+function rate(i, state, mp::Metapopulation{SIS})
+    β = mp.dynamics.β
+    γ = mp.dynamics.γ
+    D = mp.D
+    h = mp.h
+    β*state[i,1]*state[i,2] + γ*state[i,2] + sum(D .* state[i,:]) * outdegree(h,i)
+end
+
+function update_state!(state, a, k, mp::Metapopulation{SIS})
+    N = nv(mp.h)
+    D = mp.D
+    β = mp.dynamics.β
+    γ = mp.dynamics.γ
+    h = mp.h
+    p = vcat(β*state[k,1]*state[k,2], γ*state[k,2], D.*state[k,:]*outdegree(h,k))
+    j = sample(ProbabilityWeights(p, a[k]))
+    if j == 1
+        state[k,1] -= 1
+        state[k,2] += 1
+        a[k] = rate(k, state, mp)
+    elseif j == 2
+        state[k,1] += 1
+        state[k,2] -= 1
+        a[k] = rate(k, state, mp)
+    else
+        μ = k
+        ν = rand(outneighbors(h, μ))
+        state[μ,j-2] -= 1 # NB. j-2 is the state of the individual that migrates
+        state[ν,j-2] += 1 # NB. because the first 2 elements of p are the reactions
+        a[μ] = rate(μ, state, mp)
+        a[ν] = rate(ν, state, mp)
+    end
+end
+
+function meanfield_fun(mp::Metapopulation{SIS})
+    L = normalized_laplacian(mp.h)
+    β = mp.dynamics.β
+    γ = mp.dynamics.γ
+    D = mp.D
+    f! = function(dx, x, p, t)
+        tmp = (β.*x[:,1] .- γ).*x[:,2]
+        dx[:,1] .= -tmp - D[1]*L'*x[:,1]
+        dx[:,2] .= tmp - D[2]*L'x[:,2]
+    end
+    return f!
+end
+
+# Contact Process
+
+function rate(k, state, cp::ContactProcess{SIS})
+    if !state[k]
+        l = length(filter(i->state[i], inneighbors(cp.g, k)))
+        return cp.dynamics.β * l
+    else
+        return cp.dynamics.γ
+    end
+end
+
+function init_output(cp::ContactProcess{SIS}, state, nmax)
+    output = Vector{Tuple{Int, EpidemicEvent}}(undef, nmax)
+    output[1] = (sum(state), EmptyEpidemicEvent())
+    return output
+end
+
+function update_state!(state, a, k, cp::ContactProcess{SIS})
+    g = cp.g
+    β = cp.dynamics.β
+    γ = cp.dynamics.γ
+    if !state[k]
+        state[k] = true
+        for i in Iterators.filter(j->!state[j], outneighbors(g, k))
+            a[i] += β
+        end
+    else
+        state[k] = false
+        for i in Iterators.filter(j->!state[j], outneighbors(g, k))
+            a[i] -= β
+        end
+    end
+    a[k] = rate(k, state, cp)
+end
+
+function update_output!(output, state, n, k, cp::ContactProcess)
+    old = output[n-1][1]
+    if state[k] # newly infected node
+        j = rand(filter(i->state[i], inneighbors(cp.g, k)))
+        output[n] = (old+1, CPSimpleInfectionEvent(j,k))
+    else
+        output[n] = (old-1, CPSimpleRecoveryEvent(k))
+    end
+end
+
+function meanfield_fun(cp::ContactProcess{SIS})
+    A = adjacency_matrix(cp.g)
+    β = cp.dynamics.β
+    γ = cp.dynamics.γ
+    f! = function(dx, x, p, t)
+        dx .= β.*(1.0 .- x).(A*x) .- γ.*x
+    end
+    return f!
+end
+
+# Metaplex
+
+function rate(k, state, mpx::Metaplex{SIS})
+    β = mpx.dynamics.β
+    γ = mpx.dynamics.γ
+    D = mpx.D
+    x_i = state[:state_i]
+    x_μ = state[:state_μ]
+    popcounts = state[:popcounts]
+    if !x_i[k]
+        l = length(filter(i->x_i[i] && x_μ[i]==x_μ[k], inneighbors(mpx.g, k)))
+        return β*l + D[1]
+    else
+        return γ + D[2]
+    end
+end
+
+function update_state!(state, a, k, mpx::Metaplex{SIS})
+    N = nv(mpx.g)
+    M = nv(mpx.h)
+    g = mpx.g
+    h = mpx.h
+    x_i =state[:state_i]
+    x_μ = state[:state_μ]
+    popcounts = state[:popcounts]
+    β = mpx.dynamics.β
+    γ = mpx.dynamics.γ
+    D = mpx.D
+    μ = x_μ[k]
+    if !x_i[k]
+        if rand()*a[k] < D[1] # susceptible node migrates
+            ν = rand(outneighbors(h, μ))
+            x_μ[k] = ν
+            popcounts[1,μ] -= 1
+            popcounts[1,ν] += 1
+            a[k] = rate(k, state, mpx)
+        else # susceptible node becomes infected
+            x_i[k] = true
+            popcounts[1,μ] -= 1
+            popcounts[2,μ] += 1
+            a[k] = rate(k, state, mpx)
+            for i in Iterators.filter(j->!x_i[j] && x_μ[j]==μ, outneighbors(g,k))
+                a[i] += β
+            end
+        end
+    else
+        if rand()*a[k] < D[2] # infected node migrates
+            ν = rand(outneighbors(h,μ))
+            x_μ[k] = ν
+            popcounts[2,μ] -= 1
+            popcounts[2,ν] += 1
+            # no need to change the rate
+            for i in Iterators.filter(j->!x_i[j], outneighbors(g,k))
+                if x_μ[i] == μ
+                    a[i] -= β
+                elseif x_μ[i] == ν
+                    a[i] += β
+                end
+            end
+        else # infected node recovers
+            x_i[k] = false
+            popcounts[2,μ] -= 1
+            popcounts[1,μ] += 1
+            a[k] = rate(k, state, mpx)
+            for i in Iterators.filter(j->!x_i[j] && x_μ[j]==μ, outneighbors(g,k))
+                a[i] -= β
+            end
+        end
+    end
+end
+
+function meanfield_fun(mpx::Metaplex{SIS})
+    N = nv(mpx.g)
+    M = nv(mpx.h)
+    A = adjacency_matrix(mpx.g)
+    L = normalized_laplacian(mpx.h)
+    β = mpx.dynamics.β
+    γ = mpx.dynamics.γ
+    D = mpx.D
+    f! = function(dx, x, p, t)
+        for i in 1:N
+            dx[1,i,:] .= .-D[1]*L'*x[1,i,:]
+            dx[2,i,:] .= .-D[2]*L'*x[2,i,:]
+        end
+        for μ in 1:M
+            infection = β*(x[1,:,μ].*(A*x[2,:,μ])) - γ*x[2,:,μ]
+            dx[1,:,μ] .-= infection
+            dx[2,:,μ] .== infection
+        end
+    end
+    return f!
+end
