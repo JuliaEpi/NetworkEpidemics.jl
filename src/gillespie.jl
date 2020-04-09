@@ -71,7 +71,7 @@ function average(em::AbstractEpidemicModel, state_0; nsims=1000, nbins=100, tmax
             ProgressMeter.next!(p; showvalues = [(:iteration,n)])
         end
     end
-    return finalize_sums(sums, nsims, em)
+    return ts, finalize_sums(sums, nsims, em)
 end
 
 progressbar(::AbstractEpidemicModel) = false
@@ -87,5 +87,5 @@ function update_sums!(sums, k, l, states, em::AbstractEpidemicModel)
 end
 
 function finalize_sums(sums, nsims, em::AbstractEpidemicModel)
-    return float(sums)./nsims
+    return float.(finalize_output(em, sums))./nsims
 end

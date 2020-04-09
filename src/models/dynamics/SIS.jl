@@ -20,7 +20,7 @@ function rate(i, state, mp::Metapopulation{SIS})
     γ = mp.dynamics.γ
     D = mp.D
     h = mp.h
-    β*state[i,1]*state[i,2] + γ*state[i,2] + sum(D .* state[i,:]) * outdegree(h,i)
+    β*state[i,1]*state[i,2] + γ*state[i,2] + sum(D .* state[i,:]) * (outdegree(h,i) > 0)
 end
 
 function update_state!(state, a, k, mp::Metapopulation{SIS})
@@ -29,7 +29,7 @@ function update_state!(state, a, k, mp::Metapopulation{SIS})
     β = mp.dynamics.β
     γ = mp.dynamics.γ
     h = mp.h
-    p = vcat(β*state[k,1]*state[k,2], γ*state[k,2], D.*state[k,:]*outdegree(h,k))
+    p = vcat(β*state[k,1]*state[k,2], γ*state[k,2], D.*state[k,:]*(outdegree(h,k)>0))
     j = sample(ProbabilityWeights(p, a[k]))
     if j == 1
         state[k,1] -= 1
@@ -74,8 +74,8 @@ function rate(k, state, cp::ContactProcess{SIS})
 end
 
 function init_output(cp::ContactProcess{SIS}, state, nmax)
-    output = Vector{Tuple{Int, EpidemicEvent}}(undef, nmax)
-    output[1] = (sum(state), EmptyEpidemicEvent())
+    output = Vector{Int}(undef, nmax)
+    output[1] = sum(state)
     return output
 end
 
@@ -100,11 +100,14 @@ end
 function update_output!(output, state, n, k, cp::ContactProcess)
     old = output[n-1][1]
     if state[k] # newly infected node
-        j = rand(filter(i->state[i], inneighbors(cp.g, k)))
-        output[n] = (old+1, CPSimpleInfectionEvent(j,k))
+        output[n] = output[n-1] + 1
     else
-        output[n] = (old-1, CPSimpleRecoveryEvent(k))
+        output[n] = output[n-1] - 1
     end
+end
+
+function init_state_mf(cp::ContactProcess{SIS}, x0)
+    return float(x0)
 end
 
 function meanfield_fun(cp::ContactProcess{SIS})
@@ -117,6 +120,15 @@ function meanfield_fun(cp::ContactProcess{SIS})
     return f!
 end
 
+function finalize_meanfield(cp::ContactProcess{SIS}, sol)
+    N = nv(cp.g)
+    n = length(sol.u)
+    output = Array{Float64,2}(undef, n, N)
+    for i in 1:n
+        output[i,:] .= sol.u[n]
+    end
+    return sol.t, output
+end
 # Metaplex
 
 function rate(k, state, mpx::Metaplex{SIS})

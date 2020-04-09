@@ -13,9 +13,9 @@ function meanfield(em::AbstractEpidemicModel, state_0; tmax=100.0, saveat=[])
     u0 = init_state_mf(em, state_0)
     prob = ODEProblem(f!, u0, (0.0, tmax))
     sol = solve(prob, Tsit5(), saveat=saveat)
-    process_solution(em, sol)
+    finalize_meanfield(em, sol)
 end
 
 init_state_mf(em::AbstractEpidemicModel, x0) = float(x0)
 
-process_solution(em::AbstractEpidemicModel, sol) = sol.t, sol.u, sol
+finalize_meanfield(em::AbstractEpidemicModel, sol) = sol.t, sol.u, sol

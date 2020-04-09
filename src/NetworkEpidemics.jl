@@ -12,6 +12,7 @@ include("utils\\categorical_tree.jl")
 include("utils\\rand.jl")
 include("utils\\unzip.jl")
 include("utils\\laplacian.jl")
+include("utils\\arrays.jl")
 
 export normalized_laplacian
 

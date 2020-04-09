@@ -44,6 +44,17 @@ function finalize_output(mp::Metapopulation{T}, output) where T <: AbstractCompa
     return out
 end
 
+function finalize_meanfield(mp::Metapopulation{T}, sol) where T <: AbstractCompartimentalModel
+    m = num_states(mp.dynamics)
+    n = length(sol.u)
+    M = nv(mp.h)
+    output = [Array{Float64,2}(undef, n, M) for i in 1:m]
+    for i in 1:n, j in 1:m
+        output[j][i,:] .= sol.u[i][:,j]
+    end
+    return sol.t, output
+end
+
 # Contact Process
 
 function init_rates!(a, state, cp::ContactProcess{T}) where T <: AbstractCompartimentalModel
@@ -53,8 +64,25 @@ function init_rates!(a, state, cp::ContactProcess{T}) where T <: AbstractCompart
     end
 end
 
-function finalize_output(cp::ContactProcess{T}, output) where T <: AbstractCompartimentalModel
-    unzip(output)
+function init_state_mf(cp::ContactProcess{T}, x0) where T <: AbstractCompartimentalModel
+    N = nv(cp.g)
+    m = num_states(cp.dynamics)
+    state = zeros(N,m)
+    for i in 1:N
+        state[i, x0[i]] = 1.0
+    end
+    return state
+end
+
+function finalize_meanfield(cp::ContactProcess{T}, sol) where T <: AbstractCompartimentalModel
+    N = nv(cp.g)
+    m = num_states(cp.dynamics)
+    n = length(sol.u)
+    output = [Array{Float64,2}(undef, n, N) for i in 1:m]
+    for i in 1:n, j in 1:m
+        output[j][i,:] .= sol.u[i][:,j]
+    end
+    return sol.t, output
 end
 
 # Metaplex
@@ -102,4 +130,16 @@ function init_state_mf(mpx::Metaplex{T}, x0) where T <: AbstractCompartimentalMo
         state[x_i[i],i,x_μ[i]] = 1.0
     end
     return state
+end
+
+function finalize_meanfield(em::Metaplex{T}, sol) where T <: AbstractCompartimentalModel
+    N = nv(mpx.g)
+    M = nv(mpx.h)
+    m = num_states(mpx.dynamics)
+    n = length(sol.u)
+    output = [Array{Float64,3}(undef, n, N, M) for i in 1:m]
+    for i in 1:n, j in 1:m
+        output[j][i,:,:] .= sol.u[i][j,:,:]
+    end
+    return sol.t, output
 end
