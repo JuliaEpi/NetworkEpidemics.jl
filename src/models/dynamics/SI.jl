@@ -106,13 +106,13 @@ end
 # Metaplex
 
 function rate(k, state, mpx::Metaplex{SI})
-    β : mpx.dynamics.β
+    β = mpx.dynamics.β
     D = mpx.D
     x_i = state[:state_i]
     x_μ = state[:state_μ]
     popcounts = state[:popcounts]
-    if !x_i[k]
-        l = length(filter(i->x_i[i] && x_μ[i]==x_μ[k], inneighbors(mpx.g, k)))
+    if x_i[k] == 1
+        l = length(filter(i->x_i[i]==2 && x_μ[i]==x_μ[k], inneighbors(mpx.g, k)))
         return β*l + D[1]
     else
         return D[2]
@@ -130,29 +130,29 @@ function update_state!(state, a, k, mpx::Metaplex{SI})
     β = mpx.dynamics.β
     D = mpx.D
     μ = x_μ[k]
-    if !x_i[k]
+    if x_i[k] == 1
         if rand()*a[k] < D[1]
             ν = rand(outneighbors(h,μ))
             x_μ[k] = ν
-            popcounts[1,μ] -= 1
-            popcounts[1,ν] += 1
-            l = length(filter(i->x_i[i] && x_μ[i]==ν, inneighbors(g,k)))
+            popcounts[μ,1] -= 1
+            popcounts[ν,1] += 1
+            l = length(filter(i->x_i[i]==2 && x_μ[i]==ν, inneighbors(g,k)))
             a[k] = β*l + D[1]
         else
-            x_i[k] = true
-            popcounts[1,μ] -= 1
-            popcounts[2,μ] += 1
+            x_i[k] = 2
+            popcounts[μ,1] -= 1
+            popcounts[μ,2] += 1
             a[k] = D[2]
-            for i in Iterators.filter(j->!x_i[j] && x_μ[j]==μ, outneighbors(g,k))
+            for i in Iterators.filter(j->x_i[j]==1 && x_μ[j]==μ, outneighbors(g,k))
                 a[i] += β
             end
         end
     else
         ν = rand(outneighbors(h,μ))
         x_μ[k] = ν
-        popcounts[2,μ] -= 1
-        popcounts[2,ν] += 1
-        for i in Iterators.filter(j->!x_i[j], outneighbors(g,k))
+        popcounts[μ,2] -= 1
+        popcounts[ν,2] += 1
+        for i in Iterators.filter(j->x_i[j]==1, outneighbors(g,k))
             if x_μ[i] == μ
                 a[i] -= β
             elseif x_μ[i] == ν
@@ -175,9 +175,9 @@ function meanfield_fun(mpx::Metaplex{SI})
             dx[2,i,:] .= .-D[2]*L'*x[2,i,:]
         end
         for μ in 1:M
-            infection = β*(x[1,:,μ].*(A*u[2,:,μ]))
+            infection = β*(x[1,:,μ].*(A*x[2,:,μ]))
             dx[1,:,μ] .-= infection
-            dx[2,:,μ] .== infection
+            dx[2,:,μ] .+= infection
         end
     end
     return f!

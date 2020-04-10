@@ -56,8 +56,8 @@ function meanfield_fun(mp::Metapopulation{SIS})
     D = mp.D
     f! = function(dx, x, p, t)
         tmp = (β.*x[:,1] .- γ).*x[:,2]
-        dx[:,1] .= -tmp - D[1]*L'*x[:,1]
-        dx[:,2] .= tmp - D[2]*L'x[:,2]
+        dx[:,1] .= .-tmp .- D[1].*(L'*x[:,1])
+        dx[:,2] .= tmp .- D[2].*(L'x[:,2])
     end
     return f!
 end
@@ -82,7 +82,6 @@ end
 function update_state!(state, a, k, cp::ContactProcess{SIS})
     g = cp.g
     β = cp.dynamics.β
-    γ = cp.dynamics.γ
     if !state[k]
         state[k] = true
         for i in Iterators.filter(j->!state[j], outneighbors(g, k))
@@ -115,7 +114,7 @@ function meanfield_fun(cp::ContactProcess{SIS})
     β = cp.dynamics.β
     γ = cp.dynamics.γ
     f! = function(dx, x, p, t)
-        dx .= β.*(1.0 .- x).(A*x) .- γ.*x
+        dx .= β.*(1.0 .- x).*(A*x) .- γ.*x
     end
     return f!
 end
@@ -129,6 +128,7 @@ function finalize_meanfield(cp::ContactProcess{SIS}, sol)
     end
     return sol.t, output
 end
+
 # Metaplex
 
 function rate(k, state, mpx::Metaplex{SIS})
@@ -137,12 +137,12 @@ function rate(k, state, mpx::Metaplex{SIS})
     D = mpx.D
     x_i = state[:state_i]
     x_μ = state[:state_μ]
-    popcounts = state[:popcounts]
-    if !x_i[k]
-        l = length(filter(i->x_i[i] && x_μ[i]==x_μ[k], inneighbors(mpx.g, k)))
-        return β*l + D[1]
+    od = outdegree(mpx.h, x_μ[k]) > 0
+    if x_i[k] == 1
+        l = length(filter(i->x_i[i]==2 && x_μ[i]==x_μ[k], inneighbors(mpx.g, k)))
+        return β*l + D[1]*od
     else
-        return γ + D[2]
+        return γ + D[2]*od
     end
 end
 
@@ -151,26 +151,26 @@ function update_state!(state, a, k, mpx::Metaplex{SIS})
     M = nv(mpx.h)
     g = mpx.g
     h = mpx.h
-    x_i =state[:state_i]
+    x_i = state[:state_i]
     x_μ = state[:state_μ]
     popcounts = state[:popcounts]
     β = mpx.dynamics.β
     γ = mpx.dynamics.γ
     D = mpx.D
     μ = x_μ[k]
-    if !x_i[k]
+    if x_i[k] == 1
         if rand()*a[k] < D[1] # susceptible node migrates
             ν = rand(outneighbors(h, μ))
             x_μ[k] = ν
-            popcounts[1,μ] -= 1
-            popcounts[1,ν] += 1
+            popcounts[μ,1] -= 1
+            popcounts[ν,1] += 1
             a[k] = rate(k, state, mpx)
         else # susceptible node becomes infected
-            x_i[k] = true
-            popcounts[1,μ] -= 1
-            popcounts[2,μ] += 1
+            x_i[k] = 2
+            popcounts[μ,1] -= 1
+            popcounts[μ,2] += 1
             a[k] = rate(k, state, mpx)
-            for i in Iterators.filter(j->!x_i[j] && x_μ[j]==μ, outneighbors(g,k))
+            for i in Iterators.filter(j->x_i[j]==1 && x_μ[j]==μ, outneighbors(g,k))
                 a[i] += β
             end
         end
@@ -178,10 +178,10 @@ function update_state!(state, a, k, mpx::Metaplex{SIS})
         if rand()*a[k] < D[2] # infected node migrates
             ν = rand(outneighbors(h,μ))
             x_μ[k] = ν
-            popcounts[2,μ] -= 1
-            popcounts[2,ν] += 1
-            # no need to change the rate
-            for i in Iterators.filter(j->!x_i[j], outneighbors(g,k))
+            popcounts[μ,2] -= 1
+            popcounts[ν,2] += 1
+            a[k] = rate(k, state, mpx)
+            for i in Iterators.filter(j->x_i[j]==1, outneighbors(g,k))
                 if x_μ[i] == μ
                     a[i] -= β
                 elseif x_μ[i] == ν
@@ -189,11 +189,11 @@ function update_state!(state, a, k, mpx::Metaplex{SIS})
                 end
             end
         else # infected node recovers
-            x_i[k] = false
-            popcounts[2,μ] -= 1
-            popcounts[1,μ] += 1
+            x_i[k] = 1
+            popcounts[μ,2] -= 1
+            popcounts[μ,1] += 1
             a[k] = rate(k, state, mpx)
-            for i in Iterators.filter(j->!x_i[j] && x_μ[j]==μ, outneighbors(g,k))
+            for i in Iterators.filter(j->x_i[j]==1 && x_μ[j]==μ, outneighbors(g,k))
                 a[i] -= β
             end
         end
@@ -214,9 +214,9 @@ function meanfield_fun(mpx::Metaplex{SIS})
             dx[2,i,:] .= .-D[2]*L'*x[2,i,:]
         end
         for μ in 1:M
-            infection = β*(x[1,:,μ].*(A*x[2,:,μ])) - γ*x[2,:,μ]
+            infection = β.*x[1,:,μ].*(A*x[2,:,μ]) .- γ.*x[2,:,μ]
             dx[1,:,μ] .-= infection
-            dx[2,:,μ] .== infection
+            dx[2,:,μ] .+= infection
         end
     end
     return f!
