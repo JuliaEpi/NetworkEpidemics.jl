@@ -105,6 +105,9 @@ function update_output!(output, state, n, k, cp::ContactProcess)
     end
 end
 
+output_elem_size(::ContactProcess{SIS}) = 1
+output_type(::ContactProcess{SIS}) = Int
+
 function init_state_mf(cp::ContactProcess{SIS}, x0)
     return float(x0)
 end
