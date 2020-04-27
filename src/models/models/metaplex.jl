@@ -30,3 +30,5 @@ function init_rates(mpx::Metaplex, state)
 end
 
 output_type(::Metaplex) = Int
+
+progressbar(::Metaplex) = true

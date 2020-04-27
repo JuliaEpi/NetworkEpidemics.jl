@@ -24,5 +24,7 @@ end
 
 output_type(::Metapopulation) = Int
 
+progressbar(::Metapopulation) = true
+
 
 # Not part of the interface

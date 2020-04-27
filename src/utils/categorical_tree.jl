@@ -40,15 +40,15 @@ function CategoricalTree(a::Vector{T}) where T<:Real
     return CategoricalTree{T}(ns,as)
 end
 
-isempty(ct::CategoricalTree{<:Real}) = isempty(ct.as[1])
-length(ct::CategoricalTree{<:Real}) = length(ct.as[1])
+Base.isempty(ct::CategoricalTree{<:Real}) = isempty(ct.as[1])
+Base.length(ct::CategoricalTree{<:Real}) = length(ct.as[1])
 
-firstindex(::CategoricalTree) = 1
-lastindex(ct::CategoricalTree) = length(ct)
+Base.firstindex(::CategoricalTree) = 1
+Base.lastindex(ct::CategoricalTree) = length(ct)
 
-getindex(ct::CategoricalTree{<:Real}, i) = ct.as[1][i]
+Base.getindex(ct::CategoricalTree{<:Real}, i) = ct.as[1][i]
 
-function setindex!(ct::CategoricalTree{<:Real}, x, i)
+function Base.setindex!(ct::CategoricalTree{<:Real}, x, i)
     ct.as[1][i] = x
     j = i
     for k in 2:length(ct.ns)
@@ -63,7 +63,7 @@ end
 
 
 # since we already computed the sum, we might as well make use of it
-sum(ct::CategoricalTree{<:Real}) = ct.as[end][1]
+Base.sum(ct::CategoricalTree{<:Real}) = ct.as[end][1]
 
 """
     rand_categorical(ct::CategoricalTree{<:Real}, a0)
