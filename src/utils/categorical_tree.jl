@@ -71,6 +71,9 @@ Base.sum(ct::CategoricalTree{<:Real}) = ct.as[end][1]
 Pick one index according to a categorical distribution described by `ct`.
 """
 function rand_categorical(ct::CategoricalTree{<:Real}, a0 = sum(ct))
+    if length(ct.ns) == 1
+        return 1
+    end
     r = rand()*sum(ct)
     i = length(ct.ns) - 1
     j = 1

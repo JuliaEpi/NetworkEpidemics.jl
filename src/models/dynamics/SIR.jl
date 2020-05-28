@@ -93,6 +93,14 @@ function update_state!(state, a, k, cp::ContactProcess{SIR})
     a[k] = rate(k, state, cp)
 end
 
+function update_output!(output, state, n, k, cp::ContactProcess{SIR})
+    if state[k] == 2
+        output[n] = output[n-1] + [-1, 1, 0]
+    else
+        output[n] = output[n-1] + [0, -1, 1]
+    end
+end
+
 function meanfield_fun(cp::ContactProcess{SIR})
     A = adjacency_matrix(cp.g)
     β = cp.dynamics.β

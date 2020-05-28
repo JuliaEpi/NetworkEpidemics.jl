@@ -53,42 +53,36 @@ end
 # Contact Process
 
 function rate(k, state, cp::ContactProcess{SI})
-    if !state[k]
-        l = length(filter(i->state[i], inneighbors(cp.g, k)))
+    if state[k] == 1
+        l = length(filter(i->state[i]==2, inneighbors(cp.g, k)))
         return cp.dynamics.β * l
     else
         return 0.0
     end
 end
 
-function init_output(cp::ContactProcess{SI}, state, nmax)
-    output = Vector{Int}(undef, nmax)
-    output[1] = sum(state)
-    return output
-end
-
 function update_state!(state, a, k, cp::ContactProcess{SI})
     β = cp.dynamics.β
-    state[k] = true
+    state[k] = 2
     a[k] = 0.0
-    for i in Iterators.filter(j->!state[j], outneighbors(cp.g, k))
+    for i in Iterators.filter(j->state[j]==1, outneighbors(cp.g, k))
         a[i] += β
     end
 end
 
 function update_output!(output, state, n, k, cp::ContactProcess{SI})
-    output[n] = output[n-1] + 1
+    output[n] = output[n-1] + [-1, 1]
 end
 
 function init_state_mf(cp::ContactProcess{SI}, x0)
-    return float(x0)
+    return float(x0 .- 1)
 end
 
 function meanfield_fun(cp::ContactProcess{SI})
     A = adjacency_matrix(cp.g)
     β = cp.dynamics.β
     f! = function(dx, x, p, t)
-        dx .= β.*(1.0 .- x).(A*x)
+        dx .= β.*(1.0 .- x).*(A*x)
     end
     return f!
 end
@@ -98,7 +92,7 @@ function finalize_meanfield(cp::ContactProcess{SI}, sol)
     n = length(sol.u)
     output = Array{Float64,2}(undef, n, N)
     for i in 1:n
-        output[i,:] .= sol.u[n]
+        output[i,:] .= sol.u[i]
     end
     return sol.t, output
 end

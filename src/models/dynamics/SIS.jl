@@ -65,51 +65,43 @@ end
 # Contact Process
 
 function rate(k, state, cp::ContactProcess{SIS})
-    if !state[k]
-        l = length(filter(i->state[i], inneighbors(cp.g, k)))
+    if state[k] == 1
+        l = length(filter(i->state[i]==2, inneighbors(cp.g, k)))
         return cp.dynamics.β * l
     else
         return cp.dynamics.γ
     end
 end
 
-function init_output(cp::ContactProcess{SIS}, state, nmax)
-    output = Vector{Int}(undef, nmax)
-    output[1] = sum(state)
-    return output
-end
 
 function update_state!(state, a, k, cp::ContactProcess{SIS})
     g = cp.g
     β = cp.dynamics.β
-    if !state[k]
-        state[k] = true
-        for i in Iterators.filter(j->!state[j], outneighbors(g, k))
+    if state[k] == 1
+        state[k] = 2
+        for i in Iterators.filter(j->state[j]==1, outneighbors(g, k))
             a[i] += β
         end
     else
-        state[k] = false
-        for i in Iterators.filter(j->!state[j], outneighbors(g, k))
+        state[k] = 1
+        for i in Iterators.filter(j->state[j]==1, outneighbors(g, k))
             a[i] -= β
         end
     end
     a[k] = rate(k, state, cp)
 end
 
-function update_output!(output, state, n, k, cp::ContactProcess)
-    old = output[n-1][1]
-    if state[k] # newly infected node
-        output[n] = output[n-1] + 1
+function update_output!(output, state, n, k, cp::ContactProcess{SIS})
+    if state[k] == 2 # newly infected node
+        output[n] = output[n-1] + [-1, 1]
     else
-        output[n] = output[n-1] - 1
+        output[n] = output[n-1] + [1, -1]
     end
 end
 
-output_elem_size(::ContactProcess{SIS}) = 1
-output_type(::ContactProcess{SIS}) = Int
 
 function init_state_mf(cp::ContactProcess{SIS}, x0)
-    return float(x0)
+    return float(x0 .- 1)
 end
 
 function meanfield_fun(cp::ContactProcess{SIS})
@@ -127,7 +119,7 @@ function finalize_meanfield(cp::ContactProcess{SIS}, sol)
     n = length(sol.u)
     output = Array{Float64,2}(undef, n, N)
     for i in 1:n
-        output[i,:] .= sol.u[n]
+        output[i,:] .= sol.u[i]
     end
     return sol.t, output
 end

@@ -15,3 +15,5 @@ function init_rates(cp::ContactProcess, state)
     init_rates!(a, state, cp)
     return a
 end
+
+progressbar(::ContactProcess) = true

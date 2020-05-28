@@ -34,10 +34,10 @@ function update_output!(output, state, n, k, mp::Metapopulation{T}) where T <: A
 end
 
 function finalize_output(mp::Metapopulation{T}, output) where T <: AbstractCompartimentalModel
-    N = nv(mp.h)
+    M = nv(mp.h)
     n = length(output)
     m = num_states(mp.dynamics)
-    out = [Array{Int,2}(undef, n, N) for i in 1:m]
+    out = [Array{Int,2}(undef, n, M) for i in 1:m]
     for i in 1:n, j in 1:m
         out[j][i,:] .= output[i][:,j]
     end
@@ -63,6 +63,35 @@ function init_rates!(a, state, cp::ContactProcess{T}) where T <: AbstractCompart
         a[k] = rate(k, state, cp)
     end
 end
+
+function init_output(cp::ContactProcess{T}, state, nmax) where T <: AbstractCompartimentalModel
+    m = num_states(cp.dynamics)
+    output = [Array{Int,1}(undef, m) for i in 1:nmax]
+    for k in 1:m
+        output[1][k] = length(filter(x->x==k, state))
+    end
+    return output
+end
+
+function update_output!(output, state, n, k, cp::ContactProcess{T}) where T <: AbstractCompartimentalModel
+    m = num_states(cp.dynamics)
+    for k in 1:m
+        output[n][k] = length(filter(x->x==k, state))
+    end
+end
+
+function finalize_output(cp::ContactProcess{T}, output) where T <: AbstractCompartimentalModel
+    n = length(output)
+    m = num_states(cp.dynamics)
+    out = [Array{Int,1}(undef, n) for i in 1:m]
+    for i in 1:n, j in 1:m
+        out[j][i] = output[i][j]
+    end
+    return out
+end
+
+output_elem_size(cp::ContactProcess{<:AbstractCompartimentalModel}) = num_states(cp.dynamics)
+output_type(::ContactProcess{<:AbstractCompartimentalModel}) = Int
 
 function init_state_mf(cp::ContactProcess{T}, x0) where T <: AbstractCompartimentalModel
     N = nv(cp.g)
