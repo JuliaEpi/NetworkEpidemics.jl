@@ -62,7 +62,7 @@ function average(em::AbstractEpidemicModel, state_0; nsims=1000, nbins=100, tmax
         t, states = gillespie(em, state_0, tmax=tmax, nmax=nmax, process_output=false)
         l = 1
         for k in 1:nbins
-            while l < length(t) && t[l+1] < ts[k]
+            while l < length(t) && t[l+1] <= ts[k]
                 l += 1
             end
             update_sums!(sums, k, l, states, em)
