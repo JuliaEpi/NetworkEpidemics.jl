@@ -2,7 +2,7 @@ module NetworkEpidemics
 
 using ProgressMeter
 using LinearAlgebra
-using DifferentialEquations
+using OrdinaryDiffEq
 using LightGraphs
 using LightGraphs.SimpleGraphs
 using StatsBase
