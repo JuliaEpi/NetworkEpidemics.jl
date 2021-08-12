@@ -1,4 +1,8 @@
+"""
+    normalized_laplacian(g)
 
+Return the random-walk normalized laplacian of `g`, i.e. the matrix ``D^{-1}L``, where ``D`` is the diagonal degree matrix, and ``L`` is the standard laplacian matrix.
+"""
 function normalized_laplacian(g::SimpleGraph)
     L = float(laplacian_matrix(g))
     for i in vertices(g)
