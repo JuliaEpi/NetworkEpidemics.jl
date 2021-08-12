@@ -1,22 +1,8 @@
-"""
-    NotImplementedError{M}(m)
-
-`Exception` thrown when a method from the `AbstractEpidemicModel` interface
-is not implemented by a given type. Borrowed from the `LightGraphs` source code.
-"""
-struct NotImplementedError{M} <: Exception
-    m::M
-    NotImplementedError(m::M) where {M} = new{M}(m)
-end
-
-Base.showerror(io::IO, ie::NotImplementedError) = print(io, "method $(ie.m) not implemented.")
-
-_NI(m) = throw(NotImplementedError(m))
 
 """
     AbstractEpidemicModel
 
-An abstract type representing an epidemic model with support and dynamics.
+An abstract type representing an epidemic model.
 """
 abstract type AbstractEpidemicModel end
 
@@ -27,23 +13,30 @@ abstract type AbstractEpidemicModel end
 Setup the initial state for the Gillespie simulation.
 """
 function init_state(em::AbstractEpidemicModel, state_0)
-    state = copy(state_0)
+    return copy(state_0)
 end
+
+"""
+    rate(em::AbstractEpidemicModel, k, state)
+
+Return the reaction rate for reaction `k` for the epidemic model `em` at state `state`.
+"""
+function rate end
 
 """
     init_rates(em, state)
 
 Compute the rates vector `a` for the state `state`.
 """
-init_rates(em::AbstractEpidemicModel, state) = _NI("init_rates")
+function init_rates end
 
 """
     init_output(em, state, n)
 
 Initialize the output of the algorithm, allocating it and processing the initial `state`.
 """
-function init_output(em::AbstractEpidemicModel, state, nmax)
-    output = Vector{typeof(state)}(undef, nmax)
+function init_output(em::AbstractEpidemicModel, state::T, nmax) where T
+    output = Vector{T}(undef, nmax)
     output[1] = copy(state)
     return output
 end
@@ -53,15 +46,22 @@ end
 
 Update the `state` of the simulation and the rates vector `a` with reaction `k` from the rates vector.
 """
-update_state!(state, a, k, em::AbstractEpidemicModel) = _NI("update_state!")
+function update_state_and_rates! end
 
 """
-    update_output(output, state, em, n)
+    update_output!(output, state, n, k, em)
 
 Update the `output` of the simulation.
+
+Arguments:
+* `output`: the output array. `output[n]` gets mutated.
+* `state`: the current state of the simulation
+* `n`: the current time step.
+* `k`: ...
 """
 function update_output!(output, state, n, k, em::AbstractEpidemicModel)
-    output[n] = copy(state) # DansGame
+    # NB. This is inefficient, so you'll want to overload it in most cases
+    output[n] = copy(state) 
 end
 
 """
@@ -69,13 +69,8 @@ end
 
 Finalize the output.
 
-Overwrite this for example to massage your output for easier plotting.
+Overwrite this to massage your output for easier plotting.
 """
 finalize_output(em::AbstractEpidemicModel, output) = output
 
-"""
-    default_stop(em, state)
 
-Default stopping criterion for the algorithm.
-"""
-default_stop(em::AbstractEpidemicModel, state) = false
