@@ -9,7 +9,6 @@ function rand_categorical(x::Vector{<:Real}, s = sum(x))
         return 0
     end
     r = rand()
-    s = sum(x)
     i = 1
     t = x[i]
     while r*s > t
