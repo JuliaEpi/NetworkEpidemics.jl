@@ -1,17 +1,17 @@
-import Base.length
-import Base.isempty
-import Base.getindex
-import Base.setindex!
-import Base.firstindex
-import Base.lastindex
-import Base.sum
 
-# Use a binary tree to describe a categorical distribution
-# This allows for O(1) read, O(log n) write and O(log n) generation of a random index
-# Optimized for categorical distributions with a large number of possible outcomes
 
-struct CategoricalTree{T<:Real}
-    ns::Vector{<:Integer} # number of nodes at each layer of the tree (`ns[end]` should be 1, i.e. the root of the tree
+"""
+    CategoricalTree{T}
+    where T <: Real
+
+A Datastructure designed for efficiently sampling and mutating a categorical distribution with many categories.
+
+Given an array of values, we store these, and their sums in a tree where the leaf nodes are the values, and each parent node contains the sum of up to two children, all the way up to the root node which contains the sum of all values.
+
+This allows for ``O(1)`` read, ``O(\\log n)`` write, ``O(1)`` sum, and ``O(\\log n)`` sampling of a random index (when the values are describe a categorical distribution).
+"""
+struct CategoricalTree{T <: Real}
+    ns::Vector{Int} # number of nodes at each layer of the tree (`ns[end]` should be 1, i.e. the root of the tree
     as::Vector{Vector{T}} # store each layer into a separate array. Each parent node contains the sum of its children
 end
 
@@ -40,15 +40,20 @@ function CategoricalTree(a::Vector{T}) where T<:Real
     return CategoricalTree{T}(ns,as)
 end
 
-Base.isempty(ct::CategoricalTree{<:Real}) = isempty(ct.as[1])
-Base.length(ct::CategoricalTree{<:Real}) = length(ct.as[1])
+Base.iterate(ct::CategoricalTree) = iterate(ct.as[1])
+Base.iterate(ct::CategoricalTree, state) = iterate(ct.as[1], state)
+
+Base.isempty(ct::CategoricalTree) = isempty(ct.as[1])
+Base.length(ct::CategoricalTree) = length(ct.as[1])
 
 Base.firstindex(::CategoricalTree) = 1
 Base.lastindex(ct::CategoricalTree) = length(ct)
 
-Base.getindex(ct::CategoricalTree{<:Real}, i) = ct.as[1][i]
+Base.in(ct::CategoricalTree) = in(ct.as[1])
 
-function Base.setindex!(ct::CategoricalTree{<:Real}, x, i)
+Base.getindex(ct::CategoricalTree, i) = ct.as[1][i]
+
+function Base.setindex!(ct::CategoricalTree{T}, x::T, i) where {T}
     ct.as[1][i] = x
     j = i
     for k in 2:length(ct.ns)
@@ -63,18 +68,20 @@ end
 
 
 # since we already computed the sum, we might as well make use of it
-Base.sum(ct::CategoricalTree{<:Real}) = ct.as[end][1]
+Base.sum(ct::CategoricalTree) = ct.as[end][1]
 
 """
     rand_categorical(ct::CategoricalTree{<:Real}, a0)
 
 Pick one index according to a categorical distribution described by `ct`.
+
+The leaf values `a[k]` are assumed to all be non-negative. The index `k` is picked with probability `a[k]/sum(ct)`.
 """
-function rand_categorical(ct::CategoricalTree{<:Real}, a0 = sum(ct))
+function rand_categorical(ct::CategoricalTree, a0 = sum(ct))
     if length(ct.ns) == 1
         return 1
     end
-    r = rand()*sum(ct)
+    r = rand()*sum(ct) # ignore a0
     i = length(ct.ns) - 1
     j = 1
     while i > 1

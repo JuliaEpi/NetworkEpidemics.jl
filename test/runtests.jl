@@ -2,5 +2,5 @@ using NetworkEpidemics
 using Test
 
 @testset "NetworkEpidemics.jl" begin
-    # Write your own tests here.
+    include("categorical_tree.jl")
 end
