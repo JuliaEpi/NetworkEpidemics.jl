@@ -176,3 +176,48 @@ function finalize_meanfield(mpx::Metaplex{T}, sol) where T <: AbstractCompartime
     end
     return sol.t, output
 end
+
+# Heterogeneous Metapopulation
+
+function init_rates!(a, state, mp::HeterogeneousMetapopulation{T}) where T <: AbstractCompartimentalModel
+    N = nv(mp.h)
+    for k in 1:N
+        a[k] = rate(k, state, mp)
+    end
+end
+
+output_elem_size(mp::HeterogeneousMetapopulation{T}) where T <: AbstractCompartimentalModel = (nv(mp.h), num_states(mp.dynamics))
+
+function init_output(mp::HeterogeneousMetapopulation{T}, state, nmax) where T <: AbstractCompartimentalModel
+    M = nv(mp.h)
+    m = num_states(mp.dynamics)
+    output = [Array{Int,2}(undef, M, m) for i in 1:nmax]
+    output[1] .= state
+    return output
+end
+
+function update_output!(output, state, n, k, mp::HeterogeneousMetapopulation{T}) where T <: AbstractCompartimentalModel
+    output[n] .= state
+end
+
+function finalize_output(mp::HeterogeneousMetapopulation{T}, output) where T <: AbstractCompartimentalModel
+    M = nv(mp.h)
+    n = length(output)
+    m = num_states(mp.dynamics)
+    out = [Array{Int,2}(undef, n, M) for i in 1:m]
+    for i in 1:n, j in 1:m
+        out[j][i,:] .= output[i][:,j]
+    end
+    return out
+end
+
+function finalize_meanfield(mp::HeterogeneousMetapopulation{T}, sol) where T <: AbstractCompartimentalModel
+    m = num_states(mp.dynamics)
+    n = length(sol.u)
+    M = nv(mp.h)
+    output = [Array{Float64,2}(undef, n, M) for i in 1:m]
+    for i in 1:n, j in 1:m
+        output[j][i,:] .= sol.u[i][:,j]
+    end
+    return sol.t, output
+end
