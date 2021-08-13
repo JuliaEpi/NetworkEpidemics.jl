@@ -29,7 +29,6 @@ include("models/models/metaplex.jl")
 include("models/models/heterogeneous_metaplex.jl")
 
 
-include("stochastic/AbstractSimulator.jl")
 include("stochastic/gillespie.jl")
 include("stochastic/average.jl")
 include("deterministic/meanfield.jl")
