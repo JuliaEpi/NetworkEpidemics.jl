@@ -352,7 +352,8 @@ function update_state_and_rates!(state, a, k, mp::HeterogeneousMetapopulation{SI
 end
 
 function meanfield_fun(mp::HeterogeneousMetapopulation{SIS})
-    L = normalized_laplacian(mp.h)
+    #L = normalized_laplacian(mp.h)
+    L = laplacian_matrix(mp.h)
     ks = mp.ks
     N = mp.N
     β = mp.dynamics.β
