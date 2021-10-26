@@ -3,8 +3,8 @@ module NetworkEpidemics
 using ProgressMeter
 using LinearAlgebra
 using OrdinaryDiffEq
-using LightGraphs
-using LightGraphs.SimpleGraphs
+using Graphs
+using Graphs.SimpleGraphs
 using StatsBase
 using DataStructures
 using FillArrays

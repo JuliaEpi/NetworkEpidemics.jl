@@ -5,13 +5,13 @@ repo = "https://github.com/csimal/NetworkEpidemics.jl.git"
 version = "0.1.0"
 
 [deps]
-OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
-LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"
-LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
-StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
 julia = "1"
