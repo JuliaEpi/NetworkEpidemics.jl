@@ -28,7 +28,7 @@ function gillespie(em::AbstractEpidemicModel, state_0; tmax=100.0, nmax=1000, sa
         t += τ
         n += 1
         k = rand_categorical(a, a0)
-        update_state!(state, a, k, em)
+        update_state_and_rates!(state, a, k, em)
         a0 = sum(a)
         update_output!(output, state, n, k, em)
         ts[n] = t

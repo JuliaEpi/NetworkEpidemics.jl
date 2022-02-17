@@ -29,7 +29,7 @@ function update_state_and_rates!(state, a, k, mp::Metapopulation{SIR})
     β = mp.dynamics.β
     δ = mp.dynamics.δ
     h = mp.h
-    p = vcat(β*state[k,1]*state[k,2], δ*state[k,2], D.*state[k,:]*(outdegree(h,k)>0))
+    p = vcat(β*state[k,1]*state[k,2], δ*state[k,2], D.*state[k,:]*(outdegree(h,k)))
     j = sample(ProbabilityWeights(p, a[k]))
     if j == 1 # infection
         state[k,1] -= 1
@@ -49,7 +49,7 @@ function update_state_and_rates!(state, a, k, mp::Metapopulation{SIR})
 end
 
 function meanfield_fun(mp::Metapopulation{SIR})
-    L = normalized_laplacian(mp.h)
+    L = laplacian_matrix(mp.h)
     β = mp.dynamics.β
     δ = mp.dynamics.δ
     D = mp.D
@@ -122,7 +122,7 @@ function rate(k, state, mpx::Metaplex{SIR})
     D = mpx.D
     x_i = state[:state_i]
     x_μ = state[:state_μ]
-    od = outdegree(mpx.h, x_μ[k]) > 0
+    od = outdegree(mpx.h, x_μ[k])
     if x_i[k] == 1
         l = length(filter(i->x_i[i]==2 && x_μ[i]==x_μ[k], inneighbors(mpx.g, k)))
         return β*l + D[1]*od
@@ -140,13 +140,14 @@ function update_state_and_rates!(state, a, k, mpx::Metaplex{SIR})
     h = mpx.h
     x_i = state[:state_i]
     x_μ = state[:state_μ]
+    od = outdegree(mpx.h, x_μ[k])
     popcounts = state[:popcounts]
     β = mpx.dynamics.β
     δ = mpx.dynamics.δ
     D = mpx.D
     μ = x_μ[k]
     if x_i[k] == 1
-        if rand()*a[k] < D[1] # susceptible node migrates
+        if rand()*a[k] < D[1]*od # susceptible node migrates
             ν = rand(outneighbors(h, μ))
             x_μ[k] = ν
             popcounts[μ,1] -= 1
@@ -162,7 +163,7 @@ function update_state_and_rates!(state, a, k, mpx::Metaplex{SIR})
             end
         end
     elseif x_i[k] == 2
-        if rand()*a[k] < D[2] # infected node migrates
+        if rand()*a[k] < D[2]*od # infected node migrates
             ν = rand(outneighbors(h,μ))
             x_μ[k] = ν
             popcounts[μ,2] -= 1
@@ -197,7 +198,7 @@ function meanfield_fun(mpx::Metaplex{SIR})
     N = nv(mpx.g)
     M = nv(mpx.h)
     A = adjacency_matrix(mpx.g)
-    L = normalized_laplacian(mpx.h)
+    L = laplacian_matrix(mpx.h)
     β = mpx.dynamics.β
     δ = mpx.dynamics.δ
     D = mpx.D
@@ -227,7 +228,7 @@ function rate(k, state, mpx::HeterogeneousMetaplex{SIR})
     x_i = state[:state_i]
     x_μ = state[:state_μ]
     μ = x_μ[k]
-    od = outdegree(mpx.h, x_μ[k]) > 0
+    od = outdegree(mpx.h, x_μ[k])
     if x_i[k] == 1
         l = length(filter(i->x_i[i]==2 && x_μ[i]==μ, inneighbors(mpx.g[μ], k)))
         return β*l + D[1]*od
@@ -243,12 +244,13 @@ function update_state_and_rates!(state, a, k, mpx::HeterogeneousMetaplex{SIR})
     h = mpx.h
     x_i = state[:state_i]
     x_μ = state[:state_μ]
+    od = outdegree(mpx.h, x_μ[k])
     popcounts = state[:popcounts]
     β = mpx.dynamics.β
     D = mpx.D
     μ = x_μ[k]
     if x_i[k] == 1
-        if rand()*a[k] < D[1] # susceptible node migrates
+        if rand()*a[k] < D[1]*od # susceptible node migrates
             ν = rand(outneighbors(h, μ))
             x_μ[k] = ν
             popcounts[μ,1] -= 1
@@ -264,7 +266,7 @@ function update_state_and_rates!(state, a, k, mpx::HeterogeneousMetaplex{SIR})
             end
         end
     elseif x_i[k] == 2
-        if rand()*a[k] < D[2] # infected node migrates
+        if rand()*a[k] < D[2]*od # infected node migrates
             ν = rand(outneighbors(h,μ))
             x_μ[k] = ν
             popcounts[μ,2] -= 1
@@ -299,7 +301,7 @@ function meanfield_fun(mpx::HeterogeneousMetaplex{SIR})
     N = nv(mpx.g[1])
     M = nv(mpx.h)
     A = adjacency_matrix.(mpx.g)
-    L = normalized_laplacian(mpx.h)
+    L = laplacian_matrix(mpx.h)
     β = mpx.dynamics.β
     δ = mpx.dynamics.δ
     D = mpx.D

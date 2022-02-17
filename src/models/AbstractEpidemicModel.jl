@@ -74,3 +74,4 @@ Overwrite this to massage your output for easier plotting.
 finalize_output(em::AbstractEpidemicModel, output) = output
 
 
+default_stop(em::AbstractEpidemicModel, state) = false

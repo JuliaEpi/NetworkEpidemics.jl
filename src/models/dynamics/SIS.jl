@@ -20,7 +20,7 @@ function rate(i, state, mp::Metapopulation{SIS})
     γ = mp.dynamics.γ
     D = mp.D
     h = mp.h
-    β*state[i,1]*state[i,2] + γ*state[i,2] + sum(D .* state[i,:]) * (outdegree(h,i) > 0)
+    β*state[i,1]*state[i,2] + γ*state[i,2] + sum(D .* state[i,:]) * (outdegree(h,i))
 end
 
 function update_state_and_rates!(state, a, k, mp::Metapopulation{SIS})
@@ -29,7 +29,7 @@ function update_state_and_rates!(state, a, k, mp::Metapopulation{SIS})
     β = mp.dynamics.β
     γ = mp.dynamics.γ
     h = mp.h
-    p = vcat(β*state[k,1]*state[k,2], γ*state[k,2], D.*state[k,:]*(outdegree(h,k)>0))
+    p = vcat(β*state[k,1]*state[k,2], γ*state[k,2], D.*state[k,:]*(outdegree(h,k)))
     j = sample(ProbabilityWeights(p, a[k]))
     if j == 1
         state[k,1] -= 1
@@ -50,7 +50,7 @@ function update_state_and_rates!(state, a, k, mp::Metapopulation{SIS})
 end
 
 function meanfield_fun(mp::Metapopulation{SIS})
-    L = normalized_laplacian(mp.h)
+    L = laplacian_matrix(mp.h)
     β = mp.dynamics.β
     γ = mp.dynamics.γ
     D = mp.D
@@ -132,7 +132,7 @@ function rate(k, state, mpx::Metaplex{SIS})
     D = mpx.D
     x_i = state[:state_i]
     x_μ = state[:state_μ]
-    od = outdegree(mpx.h, x_μ[k]) > 0
+    od = outdegree(mpx.h, x_μ[k])
     if x_i[k] == 1
         l = length(filter(i->x_i[i]==2 && x_μ[i]==x_μ[k], inneighbors(mpx.g, k)))
         return β*l + D[1]*od
@@ -148,13 +148,14 @@ function update_state_and_rates!(state, a, k, mpx::Metaplex{SIS})
     h = mpx.h
     x_i = state[:state_i]
     x_μ = state[:state_μ]
+    od = outdegree(mpx.h, x_μ[k])
     popcounts = state[:popcounts]
     β = mpx.dynamics.β
     γ = mpx.dynamics.γ
     D = mpx.D
     μ = x_μ[k]
     if x_i[k] == 1
-        if rand()*a[k] < D[1] # susceptible node migrates
+        if rand()*a[k] < D[1]*od # susceptible node migrates
             ν = rand(outneighbors(h, μ))
             x_μ[k] = ν
             popcounts[μ,1] -= 1
@@ -170,7 +171,7 @@ function update_state_and_rates!(state, a, k, mpx::Metaplex{SIS})
             end
         end
     else
-        if rand()*a[k] < D[2] # infected node migrates
+        if rand()*a[k] < D[2]*od # infected node migrates
             ν = rand(outneighbors(h,μ))
             x_μ[k] = ν
             popcounts[μ,2] -= 1
@@ -199,7 +200,7 @@ function meanfield_fun(mpx::Metaplex{SIS})
     N = nv(mpx.g)
     M = nv(mpx.h)
     A = adjacency_matrix(mpx.g)
-    L = normalized_laplacian(mpx.h)
+    L = laplacian_matrix(mpx.h)
     β = mpx.dynamics.β
     γ = mpx.dynamics.γ
     D = mpx.D
@@ -226,7 +227,7 @@ function rate(k, state, mpx::HeterogeneousMetaplex{SIS})
     x_i = state[:state_i]
     x_μ = state[:state_μ]
     μ = x_μ[k]
-    od = outdegree(mpx.h, x_μ[k]) > 0
+    od = outdegree(mpx.h, x_μ[k])
     if x_i[k] == 1
         l = length(filter(i->x_i[i]==2 && x_μ[i]==x_μ[k], inneighbors(mpx.g[μ], k)))
         return β*l + D[1]*od
@@ -246,7 +247,7 @@ function update_state_and_rates!(state, a, k, mpx::HeterogeneousMetaplex{SIS})
     D = mpx.D
     μ = x_μ[k]
     if x_i[k] == 1
-        if rand()*a[k] < D[1] # susceptible node migrates
+        if rand()*a[k] < D[1]*od # susceptible node migrates
             ν = rand(outneighbors(h, μ))
             x_μ[k] = ν
             popcounts[μ,1] -= 1
@@ -262,7 +263,7 @@ function update_state_and_rates!(state, a, k, mpx::HeterogeneousMetaplex{SIS})
             end
         end
     else
-        if rand()*a[k] < D[2] # infected node migrates
+        if rand()*a[k] < D[2]*od # infected node migrates
             ν = rand(outneighbors(h,μ))
             x_μ[k] = ν
             popcounts[μ,2] -= 1
@@ -291,7 +292,7 @@ function meanfield_fun(mpx::HeterogeneousMetaplex{SIS})
     N = nv(mpx.g[1])
     M = nv(mpx.h)
     A = adjacency_matrix.(mpx.g)
-    L = normalized_laplacian(mpx.h)
+    L = laplacian_matrix(mpx.h)
     β = mpx.dynamics.β
     γ = mpx.dynamics.γ
     D = mpx.D
@@ -319,7 +320,7 @@ function rate(i, state, mp::HeterogeneousMetapopulation{SIS})
     ks = mp.ks
     N = mp.N
     βᵢ = β * ks[i] / N
-    return βᵢ*state[i,1]*state[i,2] + γ*state[i,2] + sum(D .* state[i,:]) * (outdegree(h,i) > 0)
+    return βᵢ*state[i,1]*state[i,2] + γ*state[i,2] + sum(D .* state[i,:]) * (outdegree(h,i))
 end
 
 function update_state_and_rates!(state, a, k, mp::HeterogeneousMetapopulation{SIS})
@@ -331,7 +332,7 @@ function update_state_and_rates!(state, a, k, mp::HeterogeneousMetapopulation{SI
     γ = mp.dynamics.γ
     h = mp.h
     βₖ = β * ks[k] / N
-    p = vcat(βₖ*state[k,1]*state[k,2], γ*state[k,2], D.*state[k,:]*(outdegree(h,k)>0))
+    p = vcat(βₖ*state[k,1]*state[k,2], γ*state[k,2], D.*state[k,:]*(outdegree(h,k)))
     j = sample(ProbabilityWeights(p, a[k]))
     if j == 1
         state[k,1] -= 1

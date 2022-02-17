@@ -15,14 +15,14 @@ num_states(::SI) = 2
 function rate(i, state, mp::Metapopulation{SI})
     β = mp.dynamics.β
     D = mp.D
-    β*state[i,1]*state[i,2] + sum( D .* state[i,:] ) * (outdegree(mp.h, i) > 0)
+    β*state[i,1]*state[i,2] + sum( D .* state[i,:] ) * (outdegree(mp.h, i))
 end
 
 function update_state_and_rates!(state, a, k, mp::Metapopulation{SI})
     N = nv(mp.h)
     D = mp.D
     β = mp.dynamics.β
-    p = vcat(β*state[k,1]*state[k,2], D.* state[k,:] * (outdegree(mp.h, k) > 0))
+    p = vcat(β*state[k,1]*state[k,2], D.* state[k,:] * (outdegree(mp.h, k)))
     j = sample(ProbabilityWeights(p))
     if j == 1 # infection in node k
         state[k,1] -= 1
@@ -39,7 +39,7 @@ function update_state_and_rates!(state, a, k, mp::Metapopulation{SI})
 end
 
 function meanfield_fun(mp::Metapopulation{SI})
-    L = normalized_laplacian(mp.h)
+    L = laplacian_matrix(mp.h)
     β = mp.dynamics.β
     D = mp.D
     f! = function(dx, x, p, t)
@@ -104,12 +104,13 @@ function rate(k, state, mpx::Metaplex{SI})
     D = mpx.D
     x_i = state[:state_i]
     x_μ = state[:state_μ]
+    od = outdegree(mpx.h, x_μ)
     #popcounts = state[:popcounts]
     if x_i[k] == 1
         l = length(filter(i->x_i[i]==2 && x_μ[i]==x_μ[k], inneighbors(mpx.g, k)))
-        return β*l + D[1]
+        return β*l + D[1]*od
     else
-        return D[2]
+        return D[2]*od
     end
 end
 
@@ -120,23 +121,24 @@ function update_state_and_rates!(state, a, k, mpx::Metaplex{SI})
     h = mpx.h
     x_i = state[:state_i]
     x_μ = state[:state_μ]
+    od = outdegree(mpx.h, x_μ)
     popcounts = state[:popcounts]
     β = mpx.dynamics.β
     D = mpx.D
     μ = x_μ[k]
     if x_i[k] == 1
-        if rand()*a[k] < D[1]
+        if rand()*a[k] < D[1]*od
             ν = rand(outneighbors(h,μ))
             x_μ[k] = ν
             popcounts[μ,1] -= 1
             popcounts[ν,1] += 1
             l = length(filter(i->x_i[i]==2 && x_μ[i]==ν, inneighbors(g,k)))
-            a[k] = β*l + D[1]
+            a[k] = β*l + D[1]*od
         else
             x_i[k] = 2
             popcounts[μ,1] -= 1
             popcounts[μ,2] += 1
-            a[k] = D[2]
+            a[k] = D[2]*od
             for i in Iterators.filter(j->x_i[j]==1 && x_μ[j]==μ, outneighbors(g,k))
                 a[i] += β
             end
@@ -160,7 +162,7 @@ function meanfield_fun(mpx::Metaplex{SI})
     N = nv(mpx.g)
     M = nv(mpx.h)
     A = adjacency_matrix(mpx.g)
-    L = normalized_laplacian(mpx.h)
+    L = laplacian_matrix(mpx.h)
     β = mpx.dynamics.β
     D = mpx.D
     f! = function(dx, x, p, t)
@@ -184,15 +186,16 @@ function rate(k, state, mpx::HeterogeneousMetaplex{SI})
     D = mpx.D
     x_i = state[:state_i]
     x_μ = state[:state_μ]
+    od = outdegree(mpx.h, x_μ)
     μ = x_μ[k]
     #popcounts = state[:popcounts]
     if x_i[k] == 1
         l = length(filter(i->x_i[i]==2 && x_μ[i]==μ, 
                 inneighbors(mpx.g[μ], k))
             )
-        return β*l + D[1]
+        return β*l + D[1]*od
     else
-        return D[2]
+        return D[2]*od
     end
 end
 
@@ -201,23 +204,24 @@ function update_state_and_rates!(state, a, k, mpx::HeterogeneousMetaplex{SI})
     h = mpx.h
     x_i = state[:state_i]
     x_μ = state[:state_μ]
+    od = outdegree(mpx.h, x_μ)
     popcounts = state[:popcounts]
     β = mpx.dynamics.β
     D = mpx.D
     μ = x_μ[k]
     if x_i[k] == 1
-        if rand()*a[k] < D[1]
+        if rand()*a[k] < D[1]*od
             ν = rand(outneighbors(h,μ))
             x_μ[k] = ν
             popcounts[μ,1] -= 1
             popcounts[ν,1] += 1
             l = length(filter(i->x_i[i]==2 && x_μ[i]==ν, inneighbors(g[μ],k)))
-            a[k] = β*l + D[1]
+            a[k] = β*l + D[1]*od
         else
             x_i[k] = 2
             popcounts[μ,1] -= 1
             popcounts[μ,2] += 1
-            a[k] = D[2]
+            a[k] = D[2]*od
             for i in Iterators.filter(j->x_i[j]==1 && x_μ[j]==μ, outneighbors(g[μ],k))
                 a[i] += β
             end
@@ -241,7 +245,7 @@ function meanfield_fun(mpx::HeterogeneousMetaplex{SI})
     N = nv(mpx.g[1])
     M = nv(mpx.h)
     A = adjacency_matrix.(mpx.g)
-    L = normalized_laplacian(mpx.h)
+    L = laplacian_matrix(mpx.h)
     β = mpx.dynamics.β
     D = mpx.D
     f! = function(dx, x, p, t)
