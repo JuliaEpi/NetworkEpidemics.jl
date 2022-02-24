@@ -20,7 +20,8 @@ function rate(i, state, mp::Metapopulation{SIS})
     γ = mp.dynamics.γ
     D = mp.D
     h = mp.h
-    β*state[i,1]*state[i,2] + γ*state[i,2] + sum(D .* state[i,:]) * (outdegree(h,i))
+    od = outdegree(h,i)
+    β*state[i,1]*state[i,2] + γ*state[i,2] + od * sum(D .* state[i,:])
 end
 
 function update_state_and_rates!(state, a, k, mp::Metapopulation{SIS})
@@ -29,7 +30,8 @@ function update_state_and_rates!(state, a, k, mp::Metapopulation{SIS})
     β = mp.dynamics.β
     γ = mp.dynamics.γ
     h = mp.h
-    p = vcat(β*state[k,1]*state[k,2], γ*state[k,2], D.*state[k,:]*(outdegree(h,k)))
+    od = outdegree(h,k)
+    p = vcat(β*state[k,1]*state[k,2], γ*state[k,2], D.*state[k,:]*od)
     j = sample(ProbabilityWeights(p, a[k]))
     if j == 1
         state[k,1] -= 1

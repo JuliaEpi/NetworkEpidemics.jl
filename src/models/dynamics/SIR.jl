@@ -18,9 +18,10 @@ num_states(::SIR) = 3
 function rate(i, state, mp::Metapopulation{SIR})
     β = mp.dynamics.β
     δ = mp.dynamics.δ
+    od = outdegree(mp.h, i)
     D = mp.D
     h = mp.h
-    β*state[i,1]*state[i,2] + δ*state[i,2] + sum(D .* state[i,:]) * (outdegree(h,i)>0)
+    β*state[i,1]*state[i,2] + δ*state[i,2] + od * sum(D .* state[i,:])
 end
 
 function update_state_and_rates!(state, a, k, mp::Metapopulation{SIR})
@@ -29,7 +30,8 @@ function update_state_and_rates!(state, a, k, mp::Metapopulation{SIR})
     β = mp.dynamics.β
     δ = mp.dynamics.δ
     h = mp.h
-    p = vcat(β*state[k,1]*state[k,2], δ*state[k,2], D.*state[k,:]*(outdegree(h,k)))
+    od = outdegree(h,k)
+    p = vcat(β*state[k,1]*state[k,2], δ*state[k,2], D.*state[k,:]*od)
     j = sample(ProbabilityWeights(p, a[k]))
     if j == 1 # infection
         state[k,1] -= 1

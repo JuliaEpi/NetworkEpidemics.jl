@@ -15,14 +15,16 @@ num_states(::SI) = 2
 function rate(i, state, mp::Metapopulation{SI})
     β = mp.dynamics.β
     D = mp.D
-    β*state[i,1]*state[i,2] + sum( D .* state[i,:] ) * (outdegree(mp.h, i))
+    od = outdegree(mp.h, i)
+    β*state[i,1]*state[i,2] + od * sum(D .* state[i,:])
 end
 
 function update_state_and_rates!(state, a, k, mp::Metapopulation{SI})
     N = nv(mp.h)
     D = mp.D
     β = mp.dynamics.β
-    p = vcat(β*state[k,1]*state[k,2], D.* state[k,:] * (outdegree(mp.h, k)))
+    od = outdegree(mp.h, k)
+    p = vcat(β*state[k,1]*state[k,2], od * D.* state[k,:])
     j = sample(ProbabilityWeights(p))
     if j == 1 # infection in node k
         state[k,1] -= 1
@@ -104,13 +106,13 @@ function rate(k, state, mpx::Metaplex{SI})
     D = mpx.D
     x_i = state[:state_i]
     x_μ = state[:state_μ]
-    od = outdegree(mpx.h, x_μ)
+    od = outdegree(mpx.h, x_μ[k])
     #popcounts = state[:popcounts]
     if x_i[k] == 1
         l = length(filter(i->x_i[i]==2 && x_μ[i]==x_μ[k], inneighbors(mpx.g, k)))
-        return β*l + D[1]*od
+        return β*l + (D[1] * od)
     else
-        return D[2]*od
+        return (D[2] * od)
     end
 end
 
@@ -121,7 +123,7 @@ function update_state_and_rates!(state, a, k, mpx::Metaplex{SI})
     h = mpx.h
     x_i = state[:state_i]
     x_μ = state[:state_μ]
-    od = outdegree(mpx.h, x_μ)
+    od = outdegree(mpx.h, x_μ[k])
     popcounts = state[:popcounts]
     β = mpx.dynamics.β
     D = mpx.D
@@ -186,7 +188,7 @@ function rate(k, state, mpx::HeterogeneousMetaplex{SI})
     D = mpx.D
     x_i = state[:state_i]
     x_μ = state[:state_μ]
-    od = outdegree(mpx.h, x_μ)
+    od = outdegree(mpx.h, x_μ[k])
     μ = x_μ[k]
     #popcounts = state[:popcounts]
     if x_i[k] == 1
@@ -204,7 +206,7 @@ function update_state_and_rates!(state, a, k, mpx::HeterogeneousMetaplex{SI})
     h = mpx.h
     x_i = state[:state_i]
     x_μ = state[:state_μ]
-    od = outdegree(mpx.h, x_μ)
+    od = outdegree(mpx.h, x_μ[k])
     popcounts = state[:popcounts]
     β = mpx.dynamics.β
     D = mpx.D
