@@ -41,7 +41,7 @@ function update_state_and_rates!(state, a, k, mp::Metapopulation{SI})
 end
 
 function meanfield_fun(mp::Metapopulation{SI})
-    L = laplacian_matrix(mp.h)
+    L = laplacian_matrix(mp.h) |> float
     β = mp.dynamics.β
     D = mp.D
     f! = function(dx, x, p, t)
@@ -81,7 +81,7 @@ function init_state_mf(cp::ContactProcess{SI}, x0)
 end
 
 function meanfield_fun(cp::ContactProcess{SI})
-    A = adjacency_matrix(cp.g)
+    A = adjacency_matrix(cp.g) |> float
     β = cp.dynamics.β
     f! = function(dx, x, p, t)
         dx .= β.*(1.0 .- x).*(A*x)
@@ -163,8 +163,8 @@ end
 function meanfield_fun(mpx::Metaplex{SI})
     N = nv(mpx.g)
     M = nv(mpx.h)
-    A = adjacency_matrix(mpx.g)
-    L = laplacian_matrix(mpx.h)
+    A = adjacency_matrix(mpx.g) |> float
+    L = laplacian_matrix(mpx.h) |> float
     β = mpx.dynamics.β
     D = mpx.D
     f! = function(dx, x, p, t)
@@ -246,8 +246,8 @@ end
 function meanfield_fun(mpx::HeterogeneousMetaplex{SI})
     N = nv(mpx.g[1])
     M = nv(mpx.h)
-    A = adjacency_matrix.(mpx.g)
-    L = laplacian_matrix(mpx.h)
+    A = float.(adjacency_matrix.(mpx.g)) 
+    L = laplacian_matrix(mpx.h) |> float
     β = mpx.dynamics.β
     D = mpx.D
     f! = function(dx, x, p, t)

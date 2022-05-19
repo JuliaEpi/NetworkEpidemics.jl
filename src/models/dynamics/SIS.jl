@@ -52,7 +52,7 @@ function update_state_and_rates!(state, a, k, mp::Metapopulation{SIS})
 end
 
 function meanfield_fun(mp::Metapopulation{SIS})
-    L = laplacian_matrix(mp.h)
+    L = laplacian_matrix(mp.h) |> float
     β = mp.dynamics.β
     γ = mp.dynamics.γ
     D = mp.D
@@ -93,7 +93,7 @@ function update_state_and_rates!(state, a, k, cp::ContactProcess{SIS})
     a[k] = rate(k, state, cp)
 end
 
-function update_output!(output, state, n, k, cp::ContactProcess{SIS})
+function update_output!(output, state, n, k, ::ContactProcess{SIS})
     if state[k] == 2 # newly infected node
         output[n] = output[n-1] + [-1, 1]
     else
@@ -102,12 +102,12 @@ function update_output!(output, state, n, k, cp::ContactProcess{SIS})
 end
 
 
-function init_state_mf(cp::ContactProcess{SIS}, x0)
+function init_state_mf(::ContactProcess{SIS}, x0)
     return float(x0 .- 1)
 end
 
 function meanfield_fun(cp::ContactProcess{SIS})
-    A = adjacency_matrix(cp.g)
+    A = adjacency_matrix(cp.g) |> float
     β = cp.dynamics.β
     γ = cp.dynamics.γ
     f! = function(dx, x, p, t)
@@ -201,8 +201,8 @@ end
 function meanfield_fun(mpx::Metaplex{SIS})
     N = nv(mpx.g)
     M = nv(mpx.h)
-    A = adjacency_matrix(mpx.g)
-    L = laplacian_matrix(mpx.h)
+    A = adjacency_matrix(mpx.g) |> float
+    L = laplacian_matrix(mpx.h) |> float
     β = mpx.dynamics.β
     γ = mpx.dynamics.γ
     D = mpx.D
@@ -248,6 +248,7 @@ function update_state_and_rates!(state, a, k, mpx::HeterogeneousMetaplex{SIS})
     γ = mpx.dynamics.γ
     D = mpx.D
     μ = x_μ[k]
+    od = outdegree(mpx.h, x_μ[k])
     if x_i[k] == 1
         if rand()*a[k] < D[1]*od # susceptible node migrates
             ν = rand(outneighbors(h, μ))
@@ -293,18 +294,19 @@ end
 function meanfield_fun(mpx::HeterogeneousMetaplex{SIS})
     N = nv(mpx.g[1])
     M = nv(mpx.h)
-    A = adjacency_matrix.(mpx.g)
-    L = laplacian_matrix(mpx.h)
-    β = mpx.dynamics.β
-    γ = mpx.dynamics.γ
+    A = mpx.adj
+    L = laplacian_matrix(mpx.h) |> float
+    β = [dyn.β for dyn in mpx.dynamics]
+    γ = [dyn.γ for dyn in mpx.dynamics]
     D = mpx.D
+    infection = Vector{Float64}(undef, N)
     f! = function(dx, x, p, t)
         for i in 1:N
-            dx[1,i,:] .= .-D[1]*L'*x[1,i,:]
-            dx[2,i,:] .= .-D[2]*L'*x[2,i,:]
+            dx[1,i,:] .= .-D[1]*L'*view(x,1,i,:)
+            dx[2,i,:] .= .-D[2]*L'*view(x,2,i,:)
         end
         for μ in 1:M
-            infection = β.*x[1,:,μ].*(A[μ]*x[2,:,μ]) .- γ.*x[2,:,μ]
+            infection .= β[μ].*view(x,1,:,μ).*(A[μ]*view(x,2,:,μ)) .- γ[μ].*view(x,2,:,μ)
             dx[1,:,μ] .-= infection
             dx[2,:,μ] .+= infection
         end
@@ -356,7 +358,7 @@ end
 
 function meanfield_fun(mp::HeterogeneousMetapopulation{SIS})
     #L = normalized_laplacian(mp.h)
-    L = laplacian_matrix(mp.h)
+    L = laplacian_matrix(mp.h) |> float
     ks = mp.ks
     N = mp.N
     β = mp.dynamics.β

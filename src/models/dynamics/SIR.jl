@@ -51,7 +51,7 @@ function update_state_and_rates!(state, a, k, mp::Metapopulation{SIR})
 end
 
 function meanfield_fun(mp::Metapopulation{SIR})
-    L = laplacian_matrix(mp.h)
+    L = laplacian_matrix(mp.h) |> float
     β = mp.dynamics.β
     δ = mp.dynamics.δ
     D = mp.D
@@ -104,7 +104,7 @@ function update_output!(output, state, n, k, cp::ContactProcess{SIR})
 end
 
 function meanfield_fun(cp::ContactProcess{SIR})
-    A = adjacency_matrix(cp.g)
+    A = adjacency_matrix(cp.g) |> float
     β = cp.dynamics.β
     δ = cp.dynamics.δ
     f! = function(dx, x, p, t)
@@ -199,8 +199,8 @@ end
 function meanfield_fun(mpx::Metaplex{SIR})
     N = nv(mpx.g)
     M = nv(mpx.h)
-    A = adjacency_matrix(mpx.g)
-    L = laplacian_matrix(mpx.h)
+    A = adjacency_matrix(mpx.g) |> float
+    L = laplacian_matrix(mpx.h) |> float
     β = mpx.dynamics.β
     δ = mpx.dynamics.δ
     D = mpx.D
@@ -302,8 +302,8 @@ end
 function meanfield_fun(mpx::HeterogeneousMetaplex{SIR})
     N = nv(mpx.g[1])
     M = nv(mpx.h)
-    A = adjacency_matrix.(mpx.g)
-    L = laplacian_matrix(mpx.h)
+    A = float.(adjacency_matrix.(mpx.g))
+    L = laplacian_matrix(mpx.h) |> float
     β = mpx.dynamics.β
     δ = mpx.dynamics.δ
     D = mpx.D
